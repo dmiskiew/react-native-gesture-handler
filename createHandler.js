@@ -43,8 +43,8 @@ if (UIManager.getConstants) {
 
 // Wrap JS responder calls and notify gesture handler manager
 const {
-  setJSResponder: oldSetJSResponder = () => {},
-  clearJSResponder: oldClearJSResponder = () => {},
+  setJSResponder: oldSetJSResponder = () => { },
+  clearJSResponder: oldClearJSResponder = () => { },
 } = UIManager;
 UIManager.setJSResponder = (tag, blockNativeResponder) => {
   RNGestureHandlerModule.handleSetJSResponder(tag, blockNativeResponder);
@@ -260,6 +260,18 @@ export default function createHandler(
         { ...(this.constructor.propTypes || propTypes), ...customNativeProps },
         config
       );
+    }
+
+    _filterConfig(props = this.props) {
+      return filterConfig(
+        transformProps ? transformProps(props) : props,
+        { ...this.constructor.propTypes, ...customNativeProps },
+        config
+      );
+    }
+
+    _update() {
+      const newConfig = this._filterConfig();
       if (!deepEqual(this._config, newConfig)) {
         this._updateGestureHandler(newConfig);
       }
@@ -353,3 +365,4 @@ export default function createHandler(
   }
   return Handler;
 }
+

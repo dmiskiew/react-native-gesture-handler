@@ -2,9 +2,11 @@ package com.swmansion.gesturehandler.react;
 
 import android.util.Log;
 import android.content.Context;
+import android.view.DragEvent;
 import android.view.MotionEvent;
 import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.view.View;
 
 import com.facebook.infer.annotation.Assertions;
 import com.facebook.react.bridge.ReactContext;
@@ -33,6 +35,12 @@ public class RNGestureHandlerRootView extends ReactViewGroup {
 
   public RNGestureHandlerRootView(Context context) {
     super(context);
+    setOnDragListener(new OnDragListener() {
+      @Override
+      public boolean onDrag(View v, DragEvent event) {
+        return true;
+      }
+    });
   }
 
   @Override
@@ -73,4 +81,5 @@ public class RNGestureHandlerRootView extends ReactViewGroup {
     }
     super.requestDisallowInterceptTouchEvent(disallowIntercept);
   }
+
 }

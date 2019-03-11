@@ -2,7 +2,9 @@ package com.swmansion.gesturehandler.react;
 
 import android.os.SystemClock;
 import android.util.Log;
+import android.view.DragEvent;
 import android.view.MotionEvent;
+import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 
@@ -11,10 +13,11 @@ import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.UiThreadUtil;
 import com.facebook.react.common.ReactConstants;
 import com.facebook.react.views.modal.RNGHModalUtils;
+import com.swmansion.gesturehandler.DragGestureUtils;
 import com.swmansion.gesturehandler.GestureHandler;
 import com.swmansion.gesturehandler.GestureHandlerOrchestrator;
 
-public class RNGestureHandlerRootHelper {
+public class RNGestureHandlerRootHelper implements View.OnDragListener {
 
   private static final float MIN_ALPHA_FOR_TOUCH = 0.1f;
 
@@ -22,6 +25,8 @@ public class RNGestureHandlerRootHelper {
   private final GestureHandlerOrchestrator mOrchestrator;
   private final GestureHandler mJSGestureHandler;
   private final ViewGroup mRootView;
+  private final ViewGroup mReactRootView;
+  private final ViewGroup mWrappedView;
 
   private boolean mShouldIntercept = false;
   private boolean mPassingTouch = false;
@@ -49,6 +54,7 @@ public class RNGestureHandlerRootHelper {
     RNGestureHandlerModule module = context.getNativeModule(RNGestureHandlerModule.class);
     RNGestureHandlerRegistry registry = module.getRegistry();
 
+    mWrappedView = wrappedView;
     mRootView = findRootViewTag(wrappedView);
 
     Log.i(
@@ -64,7 +70,7 @@ public class RNGestureHandlerRootHelper {
     mJSGestureHandler.setTag(-wrappedViewTag);
     registry.registerHandler(mJSGestureHandler);
     registry.attachHandlerToView(mJSGestureHandler.getTag(), wrappedViewTag);
-
+    mWrappedView.setOnDragListener(this);
     module.registerRootHelper(this);
   }
 
@@ -74,6 +80,8 @@ public class RNGestureHandlerRootHelper {
             "[GESTURE HANDLER] Tearing down gesture handler registered for root view " + mRootView);
     RNGestureHandlerModule module = mContext.getNativeModule(RNGestureHandlerModule.class);
     module.getRegistry().dropHandler(mJSGestureHandler.getTag());
+    mWrappedView.setOnDragListener(null);
+    mOrchestrator.tearDown();
     module.unregisterRootHelper(this);
   }
 
@@ -82,6 +90,7 @@ public class RNGestureHandlerRootHelper {
   }
 
   private class RootViewGestureHandler extends GestureHandler {
+
     @Override
     protected void onHandle(MotionEvent event) {
       int currentState = getState();
@@ -90,6 +99,18 @@ public class RNGestureHandlerRootHelper {
         mShouldIntercept = false;
       }
       if (event.getActionMasked() == MotionEvent.ACTION_UP) {
+        end();
+      }
+    }
+
+    @Override
+    protected void onHandle(DragEvent event) {
+      int currentState = getState();
+      if (currentState == STATE_UNDETERMINED) {
+        begin();
+        mShouldIntercept = false;
+      }
+      if (event.getAction() == DragEvent.ACTION_DRAG_ENDED) {
         end();
       }
     }
@@ -127,6 +148,14 @@ public class RNGestureHandlerRootHelper {
     mPassingTouch = false;
 
     return mShouldIntercept;
+  }
+
+  @Override
+  public boolean onDrag(View v, DragEvent event) {
+    mPassingTouch = true;
+    mOrchestrator.onDragEvent(event);
+    mPassingTouch = false;
+    return true;
   }
 
   private void tryCancelAllHandlers() {

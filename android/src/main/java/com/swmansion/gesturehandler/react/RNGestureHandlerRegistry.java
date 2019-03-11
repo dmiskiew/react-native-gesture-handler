@@ -4,23 +4,33 @@ import android.util.SparseArray;
 import android.view.View;
 
 import com.facebook.react.bridge.UiThreadUtil;
+import com.swmansion.gesturehandler.DropGestureHandler;
+import androidx.annotation.Nullable;
+import androidx.annotation.UiThread;
+
+import com.facebook.react.bridge.ReactApplicationContext;
+import com.facebook.react.uimanager.UIManagerModule;
 import com.swmansion.gesturehandler.GestureHandler;
 import com.swmansion.gesturehandler.GestureHandlerRegistry;
 
 import java.util.ArrayList;
-
-import androidx.annotation.Nullable;
 
 public class RNGestureHandlerRegistry implements GestureHandlerRegistry {
 
   private final SparseArray<GestureHandler> mHandlers = new SparseArray<>();
   private final SparseArray<Integer> mAttachedTo = new SparseArray<>();
   private final SparseArray<ArrayList<GestureHandler>> mHandlersForView = new SparseArray<>();
+  private final ReactApplicationContext mContext;
+
+  RNGestureHandlerRegistry(ReactApplicationContext context) {
+    mContext = context;
+  }
 
   public synchronized void registerHandler(GestureHandler handler) {
     mHandlers.put(handler.getTag(), handler);
   }
 
+  @Override
   public synchronized @Nullable GestureHandler getHandler(int handlerTag) {
     return mHandlers.get(handlerTag);
   }
@@ -97,5 +107,16 @@ public class RNGestureHandlerRegistry implements GestureHandlerRegistry {
   @Override
   public synchronized ArrayList<GestureHandler> getHandlersForView(View view) {
     return getHandlersForViewWithTag(view.getId());
+  }
+
+  @Override
+  @UiThread
+  public synchronized View getViewForHandler(GestureHandler handler) {
+    Integer tag = mAttachedTo.get(handler.getTag());
+    if (tag != null) {
+      return mContext.getNativeModule(UIManagerModule.class).resolveView(tag);
+    } else {
+      return null;
+    }
   }
 }

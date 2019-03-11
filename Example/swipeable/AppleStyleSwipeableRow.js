@@ -25,6 +25,7 @@ export default class AppleStyleSwipeableRow extends Component {
       </RectButton>
     );
   };
+  const width = Dimensions.get('window').width;
   renderRightAction = (text, color, x, progress) => {
     const trans = progress.interpolate({
       inputRange: [0, 1],
